@@ -115,7 +115,7 @@ def listStartResource(graphName):
 # but does not list each food chain
 def countFoodChains(graphName):
     foodWebSparql.setQuery( prefixes + """
-    SELECT distinct ?start ?end ?eater (count(?nextEater)as ?count)
+    SELECT (substr(str(?start),29)+"-"+substr(str(?end),29) as ?startEnd) (count(?nextEater)as ?count)
     { 
         GRAPH g:"""+graphName+"""{
             ?start :feed+ ?end.
@@ -131,7 +131,6 @@ def countFoodChains(graphName):
         }
     } 
     group by ?start ?end ?eater
-    order by ?start ?end
     """)
     foodWebSparql.setReturnFormat(JSON)
     foodWebSparql.setMethod("GET")
@@ -139,9 +138,7 @@ def countFoodChains(graphName):
     results = results["results"]["bindings"]
     chains = {}
     for result in results:
-        start = result["start"]["value"].split("/")[-1]
-        end = result["end"]["value"].split("/")[-1]
-        key = start+"-"+end
+        key = result["startEnd"]["value"]
         count = int(result["count"]["value"])
         if key in chains:
             chains[key] = chains[key] * count
@@ -152,7 +149,7 @@ def countFoodChains(graphName):
 
 def listFoodChains(graphName,start,end):
     foodWebSparql.setQuery( prefixes + """
-    SELECT ?entity ?nextEntity
+    SELECT (substr(str(?entity),29) as ?entityName) (substr(str(?nextEntity),29) as ?nextEntityName)
     { 
         GRAPH g:user01{
             dbr:"""+start+""" :feed* ?entity.
@@ -171,8 +168,8 @@ def listFoodChains(graphName,start,end):
         currentEnd = foodChains[chainIndex][-1]
         newEnd = None
         for result in results:
-            entity = result["entity"]["value"].split("/")[-1]
-            nextEntity = result["nextEntity"]["value"].split("/")[-1]
+            entity = result["entityName"]["value"]
+            nextEntity = result["nextEntityName"]["value"]
             if entity == currentEnd and newEnd == None:
                 newEnd = nextEntity
             elif entity == currentEnd and newEnd != None:
@@ -310,9 +307,9 @@ if __name__ == '__main__':
     
     # results = countFoodChains("user01")
     
-    # results = listFoodChains("user01","Cherry","Tiger")
+    results = listFoodChains("user01","Cherry","Tiger")
     
     # results = findHungryAnimals("user01")
     
     # results = listStartResource("user01")
-    # print(results)
+    print(results)
