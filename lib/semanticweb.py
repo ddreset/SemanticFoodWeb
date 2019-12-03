@@ -43,6 +43,18 @@ def listGraphs():
         graphs.append(r["g"]["value"])
     return graphs
 
+def graphExists(graphName):
+    foodWebSparql.setQuery(prefixes + """
+        ASK WHERE
+        { 
+            GRAPH g:"""+graphName+"""{?s ?p ?o}
+        } 
+    """)
+    foodWebSparql.setReturnFormat(JSON)
+    foodWebSparql.setMethod("GET")
+    results = foodWebSparql.query().convert()["boolean"]
+    return results
+
 def listFoodRelations(graphName):
     foodWebSparql.setQuery( prefixes + """
     SELECT ?food ?eater
@@ -110,6 +122,30 @@ def listStartResource(graphName):
     for result in results:
         entities.append(result["entity"]["value"])
     return entities
+
+def listStartEnd(graphName):
+    foodWebSparql.setQuery( prefixes + """
+    SELECT (substr(str(?start),29) as ?startName) (substr(str(?end),29) as ?endName)
+    { 
+        GRAPH g:"""+graphName+"""{
+            ?start :feed+ ?end.
+            minus{
+                ?start1 :feed ?start.
+            }
+            minus{
+                ?end :feed ?end1
+            }
+        }
+    }
+    """)
+    foodWebSparql.setReturnFormat(JSON)
+    foodWebSparql.setMethod("GET")
+    results = foodWebSparql.query().convert()
+    results = results["results"]["bindings"]
+    startEnd = []
+    for result in results:
+        startEnd.append([result["startName"]["value"],result["endName"]["value"]])
+    return startEnd
 
 # directly coundt food chains
 # but does not list each food chain
@@ -182,7 +218,7 @@ def listFoodChains(graphName,start,end):
 
 def findHungryAnimals(graphName):
     foodWebSparql.setQuery( prefixes + """
-    SELECT distinct *
+    SELECT distinct (substr(str(?entity),29) as ?entityName)
     WHERE { 
         SERVICE :{
             GRAPH g:"""+graphName+"""{
@@ -206,7 +242,7 @@ def findHungryAnimals(graphName):
     results = results["results"]["bindings"]
     hungryAnimals = []
     for result in results:
-        hungryAnimals.append(result["entity"]["value"])
+        hungryAnimals.append(result["entityName"]["value"])
     return hungryAnimals
 
 def initGraph(graphName):
@@ -244,9 +280,21 @@ def insertAnimal(graphName, animalName):
     code = foodWebSparql.query().response.code
     return {"code":code}
 
-def addFoodChain(graphName, food, eater):
+def addRelation(graphName, food, eater):
     foodWebSparql.setQuery(prefixes + """
     INSERT DATA { 
+        GRAPH g:"""+graphName+""" { 
+            dbr:"""+food+""" :feed dbr:"""+eater+"""
+            }
+    }
+    """)
+    foodWebSparql.setMethod("POST")
+    code = foodWebSparql.query().response.code
+    return {"code":code}
+
+def dropRelation(graphName, food, eater):
+    foodWebSparql.setQuery(prefixes + """
+    DELETE DATA { 
         GRAPH g:"""+graphName+""" { 
             dbr:"""+food+""" :feed dbr:"""+eater+"""
             }
@@ -307,9 +355,11 @@ if __name__ == '__main__':
     
     # results = countFoodChains("user01")
     
-    results = listFoodChains("user01","Cherry","Tiger")
+    # results = listFoodChains("user01","Cherry","Tiger")
     
     # results = findHungryAnimals("user01")
     
     # results = listStartResource("user01")
+
+    results = graphExists("user01")
     print(results)

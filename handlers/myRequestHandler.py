@@ -15,5 +15,5 @@ class MyRequestHandler(tornado.web.RequestHandler):
             resp_dict['Message'] = {}
         else:
             resp_dict['Message'] = msg
-        json_str = json.dumps(resp_dict, ensure_ascii=False, cls=JSONEncoder)
+        json_str = json.dumps(resp_dict, ensure_ascii=False)
         return self.write(json_str)
