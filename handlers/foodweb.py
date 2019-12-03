@@ -6,8 +6,8 @@ import settings
 
 class MainHandler(MyRequestHandler):
     def get(self):
-        self.write('<a href="%s">list food chains of user01</a>' %
-                   self.reverse_url("foodchain", "user01"))
+        self.write('<a href="%s">list graphs</a>' %
+                   self.reverse_url("graphs"))
 
 class GraphsHandler(MyRequestHandler):
     def get(self):
