@@ -1,0 +1,7 @@
+isodate==0.6.0
+pkg-resources==0.0.0
+pyparsing==2.4.5
+rdflib==4.2.2
+six==1.13.0
+SPARQLWrapper==1.8.4
+tornado==6.0.3
