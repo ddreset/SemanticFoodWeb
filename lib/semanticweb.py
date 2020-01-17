@@ -9,6 +9,7 @@ foodWebGraph = SPARQLWrapper(settings.FoodWebGraph)
 prefixes = """
 PREFIX g: <"""+settings.FoodWebGraph+""">
 PREFIX : <"""+settings.FoodWebEndPoint+""">
+PREFIX fw: <http://users.jyu.fi/~zhangy/FoodWeb.owl#>
 PREFIX dbr: <http://dbpedia.org/resource/>
 PREFIX dbo: <http://dbpedia.org/ontology/>
 """
@@ -60,7 +61,7 @@ def listFoodRelations(graphName):
     SELECT ?food ?eater
     WHERE {
         GRAPH g:"""+graphName+"""{
-            ?food :feed ?eater
+            ?food fw:feed ?eater
         }
     }
     """)
@@ -107,7 +108,7 @@ def listStartResource(graphName):
         GRAPH g:"""+graphName+"""{
             ?entity a* [].
             filter(isuri(?entity) && strstarts(str(?entity),str(dbr:)))
-            FILTER NOT EXISTS { [] :feed ?entity }
+            FILTER NOT EXISTS { [] fw:feed ?entity }
         }
         minus{
             ?entity a* [].
@@ -128,12 +129,12 @@ def listStartEnd(graphName):
     SELECT (substr(str(?start),29) as ?startName) (substr(str(?end),29) as ?endName)
     { 
         GRAPH g:"""+graphName+"""{
-            ?start :feed+ ?end.
+            ?start fw:feed+ ?end.
             minus{
-                ?start1 :feed ?start.
+                ?start1 fw:feed ?start.
             }
             minus{
-                ?end :feed ?end1
+                ?end fw:feed ?end1
             }
         }
     }
@@ -154,16 +155,16 @@ def countFoodChains(graphName):
     SELECT (substr(str(?start),29)+"-"+substr(str(?end),29) as ?startEnd) (count(?nextEater)as ?count)
     { 
         GRAPH g:"""+graphName+"""{
-            ?start :feed+ ?end.
+            ?start fw:feed+ ?end.
             minus{
-                ?start1 :feed ?start.
+                ?start1 fw:feed ?start.
             }
             minus {
-                ?end :feed ?end1.
+                ?end fw:feed ?end1.
             }
-            ?start :feed* ?eater.
-            ?eater :feed* ?end.
-            ?eater :feed ?nextEater.
+            ?start fw:feed* ?eater.
+            ?eater fw:feed* ?end.
+            ?eater fw:feed ?nextEater.
         }
     } 
     group by ?start ?end ?eater
@@ -187,10 +188,11 @@ def listFoodChains(graphName,start,end):
     foodWebSparql.setQuery( prefixes + """
     SELECT (substr(str(?entity),29) as ?entityName) (substr(str(?nextEntity),29) as ?nextEntityName)
     { 
-        GRAPH g:user01{
-            dbr:"""+start+""" :feed* ?entity.
-            ?entity :feed* dbr:"""+end+""".
-            ?entity :feed ?nextEntity.
+        GRAPH g:"""+graphName+"""{
+            dbr:"""+start+""" fw:feed* ?entity.
+            ?entity fw:feed* dbr:"""+end+""".
+            ?entity fw:feed ?nextEntity.
+            ?nextEntity fw:feed* dbr:"""+end+""".
         }
     } 
     """)
@@ -224,7 +226,7 @@ def findHungryAnimals(graphName):
             GRAPH g:"""+graphName+"""{
                 ?entity a* [].
                 filter(isuri(?entity) && strstarts(str(?entity),str(dbr:)))
-                FILTER NOT EXISTS { [] :feed ?entity }
+                FILTER NOT EXISTS { [] fw:feed ?entity }
             }
         }
         SERVICE <http://dbpedia.org/sparql/> {
@@ -249,9 +251,10 @@ def initGraph(graphName):
     foodWebSparql.setQuery(prefixes + """
     INSERT DATA { 
         GRAPH g:"""+graphName+""" { 
-            :MapOwner :userName \""""+graphName+"""\".
-            dbr:Grass a :Producer.
-            dbr:Seed a :Producer.
+            :"""+graphName+""" a :FoodWeb.
+            :"""+graphName+""" :hasContributor "user01".
+            dbr:Grass a fw:Producer.
+            dbr:Seed a fw:Producer.
             }
     }
     """)
@@ -284,7 +287,7 @@ def addRelation(graphName, food, eater):
     foodWebSparql.setQuery(prefixes + """
     INSERT DATA { 
         GRAPH g:"""+graphName+""" { 
-            dbr:"""+food+""" :feed dbr:"""+eater+"""
+            dbr:"""+food+""" fw:feed dbr:"""+eater+"""
             }
     }
     """)
@@ -296,7 +299,7 @@ def dropRelation(graphName, food, eater):
     foodWebSparql.setQuery(prefixes + """
     DELETE DATA { 
         GRAPH g:"""+graphName+""" { 
-            dbr:"""+food+""" :feed dbr:"""+eater+"""
+            dbr:"""+food+""" fw:feed dbr:"""+eater+"""
             }
     }
     """)
@@ -311,7 +314,7 @@ def countFood(graphName, animal, foodType):
     WHERE {
         SERVICE :{
             GRAPH g:"""+graphName+"""{
-                ?food :feed dbr:"""+animal+""".
+                ?food fw:feed dbr:"""+animal+""".
 
             }
         }
