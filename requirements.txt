@@ -4,4 +4,4 @@ pyparsing==2.4.5
 rdflib==4.2.2
 six==1.13.0
 SPARQLWrapper==1.8.4
-tornado==6.0.3
+tornado==6.3.3
